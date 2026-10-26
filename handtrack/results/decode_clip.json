@@ -1,0 +1,58 @@
+{
+ "args": {
+  "paths": null,
+  "frames": 1000,
+  "warmup": 30,
+  "device": "/dev/video0",
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "buffers": 2,
+  "opencv_buffers": 0,
+  "work_ms": 0,
+  "clip": "clips/bench",
+  "preview": null,
+  "out": "results/decode_clip.json"
+ },
+ "time": "2026-10-26 12:20:30",
+ "results": {
+  "cpu": {
+   "per_frame": {
+    "mean": 10.378269183,
+    "p50": 10.361107,
+    "p95": 10.6440512,
+    "p99": 10.78152924,
+    "max": 11.612093,
+    "n": 1000
+   },
+   "fps": 96.29183852483415,
+   "cpu_cores": 1.0575614240144577
+  },
+  "nvjpeg": {
+   "per_frame": {
+    "mean": 4.916567862,
+    "p50": 4.85501,
+    "p95": 5.29927325,
+    "p99": 6.03412068,
+    "max": 6.932515,
+    "n": 1000
+   },
+   "fps": 203.25691163639468,
+   "cpu_cores": 0.9283864677290895
+  },
+  "gst-nvv4l2-mjpeg": {
+   "per_frame": null,
+   "fps": 446.99040404400336,
+   "cpu_cores": 0.8536273297214103,
+   "decoded": 1000,
+   "pushed": 1000
+  },
+  "gst-nvjpegdec": {
+   "per_frame": null,
+   "fps": 132.23016499380242,
+   "cpu_cores": 0.5352913569954609,
+   "decoded": 1000,
+   "pushed": 1000
+  }
+ }
+}

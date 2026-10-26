@@ -1,0 +1,7 @@
+{
+ "onnx": "/home/isro/theramin/handtrack/models/rtmpose/rtmdet_nano_hand.onnx",
+ "tensorrt": "10.16.2.10",
+ "gpu": "Orin",
+ "fp16": true,
+ "max_batch": 1
+}

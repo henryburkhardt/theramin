@@ -1,0 +1,36 @@
+# Theremin synth settings, read by theremin.scd at startup (restart run.sh after editing).
+# camera_mirrored and the camera size come from ../handtrack/config.yaml.
+
+port: 9000                # UDP port the tracker sends to (run.py --udp 127.0.0.1:9000)
+
+voices: [0]               # semitones above the root, one oscillator each ([0, 4, 7, 11] = major 7th)
+
+pitch:
+  note_lo: 48             # MIDI note at the low end of the range (48 = C3)
+  note_hi: 84             # ... and the high end (84 = C6)
+  span: [0.15, 0.85]      # part of the frame width (your left to your right) that spans note_lo..note_hi
+  snap: 0.0               # 0 = continuous glide, 1 = snap to semitones, in between = partly
+  glide: 0.05             # seconds of portamento between pitch updates
+  steps: null             # null = continuous (uses snap); or pitch classes above note_lo to step between,
+                          # e.g. [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] = semitones, [0, 2, 4, 5, 7, 9, 11] = major scale
+  hysteresis: 0.25        # with steps: how far past a step boundary (in steps) the hand must go to change
+
+volume:
+  span: [0.15, 0.75]      # left wrist height (0 = bottom of frame, 1 = top) from silent to full volume
+
+brightness:               # right thumb-index pinch -> filter cutoff
+  cutoff_lo: 300          # Hz with the pinch closed
+  cutoff_hi: 8000         # Hz with the pinch open
+
+delay:                    # right hand height -> delay (up = louder echoes that ring longer)
+  time: 0.3               # seconds between echoes (max 2)
+  span: [0.3, 0.8]        # right wrist height (0 = bottom of frame, 1 = top) from no delay to full
+  mix_max: 0.8            # echo level at full
+  feedback_max: 0.9       # feedback at full; near 1 the echoes barely fade (capped at 0.99)
+
+vibrato:                  # left thumb-index pinch: closed = full vibrato
+  rate: 5.5               # Hz
+  depth: 0.5              # semitones at full vibrato
+
+timeout: 0.15             # seconds without a hand before it counts as gone
+debug: false              # print the values sent to the synth, 5 times a second

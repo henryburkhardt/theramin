@@ -1,0 +1,39 @@
+# Hand tracker settings. Anything left out uses the defaults in handtrack/config.py.
+
+camera:
+  device: /dev/video0
+  width: 1280
+  height: 720
+  fps: 30
+  buffers: 2              # V4L2 driver buffers; 2 is the minimum that streams reliably
+
+decode: nvjpeg            # nvjpeg (CUDA, lowest latency) | gst (NVJPG hardware engine via GStreamer)
+
+tracking:
+  max_hands: 2
+  min_detection: 0.5      # palm detector score to start a track
+  min_presence: 0.5       # landmark model hand-presence score to keep a track
+  detect_interval: 1      # with 1 hand tracked, look for the 2nd hand every N frames (1 = every frame)
+  min_palm_size: 0.09     # ignore hands whose palm is smaller than this fraction of frame height
+                          # (0.09 = 65 px at 720p; background people's hands were <= 52 px)
+  play_area: null         # [x0, y0, x1, y1] in 0..1 to only track hands whose wrist is inside
+  one_person: true        # two hands = one left + one right; IDs follow handedness
+  camera_mirrored: false  # true if the camera image is already mirrored (selfie view).
+                          # MediaPipe's handedness assumes mirrored input; this flag makes
+                          # "Left"/"Right" mean the player's actual hands.
+  handedness_alpha: 0.15
+
+filter:                   # One Euro filter on normalized coordinates
+  min_cutoff: 0.3         # Hz; lower = smoother when still
+  beta: 30.0              # higher = less lag when moving
+  d_cutoff: 1.0
+  predict_ms: 0           # e.g. 33: extrapolate filtered landmarks ahead (helps slow moves,
+                          # overshoots fast flicks; see BENCHMARKS.md)
+
+output:
+  udp: null               # "HOST:PORT", or use run.py --udp
+  udp_format: osc         # osc | json
+
+viewer:
+  mirror: true            # show a mirror image (like a selfie); key m toggles
+  show_raw: false         # also draw the unfiltered skeleton; key r toggles

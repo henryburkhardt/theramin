@@ -1,0 +1,10 @@
+# Venv: python3 -m venv --system-site-packages ~/handtrack-env
+# System site-packages supply: tensorrt 10.16, vpi 4.1.4, cv2 4.8.0 (NVIDIA, with GStreamer),
+# PyGObject/Gst 1.24, scipy 1.11. NVIDIA's cv2 and Ubuntu's scipy are built against numpy 1.x,
+# so numpy stays <2, which in turn pins CuPy to 13.x and ml-dtypes to 0.5.x.
+numpy==1.26.4
+cupy-cuda13x==13.6.0
+onnx==1.23.2
+ml-dtypes==0.5.4
+PyYAML==6.0.1
+python-osc==1.10.2

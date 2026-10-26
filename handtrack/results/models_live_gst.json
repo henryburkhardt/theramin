@@ -1,0 +1,42 @@
+{
+ "args": {
+  "trackers": [
+   "mediapipe"
+  ],
+  "clips": [
+   "still_hand",
+   "slow",
+   "fast",
+   "two_hands_crossing",
+   "enter_leave"
+  ],
+  "max_hands": 2,
+  "live": true,
+  "seconds": 40.0,
+  "source": "gst",
+  "out": "results/models_live_gst.json"
+ },
+ "time": "2026-10-26 13:29:46",
+ "results": {
+  "mediapipe": {
+   "source": "gst",
+   "frames": 1172,
+   "fps": 29.3,
+   "capture_to_landmarks_ms": {
+    "mean": 14.02687511033275,
+    "p50": 13.880874,
+    "p95": 15.439006600000004,
+    "p99": 16.62136553,
+    "n": 1142
+   },
+   "track_total_ms": {
+    "mean": 3.2309769238391963,
+    "p50": 3.114043999630667,
+    "p95": 4.38703095001074,
+    "p99": 5.900252279880078,
+    "n": 1142
+   },
+   "hands_per_frame": 1.9061433447098977
+  }
+ }
+}

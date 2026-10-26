@@ -1,0 +1,42 @@
+{
+ "args": {
+  "trackers": [
+   "mediapipe"
+  ],
+  "clips": [
+   "still_hand",
+   "slow",
+   "fast",
+   "two_hands_crossing",
+   "enter_leave"
+  ],
+  "max_hands": 2,
+  "live": true,
+  "seconds": 40.0,
+  "source": "nvjpeg",
+  "out": "results/models_live_nvjpeg.json"
+ },
+ "time": "2026-10-26 13:29:04",
+ "results": {
+  "mediapipe": {
+   "source": "nvjpeg",
+   "frames": 1198,
+   "fps": 29.95,
+   "capture_to_landmarks_ms": {
+    "mean": 12.080723177226027,
+    "p50": 11.933566500000001,
+    "p95": 12.929052350000001,
+    "p99": 14.37346333,
+    "n": 1168
+   },
+   "track_total_ms": {
+    "mean": 2.785890151531862,
+    "p50": 2.696907000427018,
+    "p95": 3.1421730004694832,
+    "p99": 4.388333699980647,
+    "n": 1168
+   },
+   "hands_per_frame": 2.0
+  }
+ }
+}

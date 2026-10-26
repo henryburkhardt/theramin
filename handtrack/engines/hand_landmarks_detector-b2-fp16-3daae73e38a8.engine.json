@@ -1,0 +1,7 @@
+{
+ "onnx": "/home/isro/theramin/handtrack/models/mediapipe/hand_landmarks_detector.onnx",
+ "tensorrt": "10.16.2.10",
+ "gpu": "Orin",
+ "fp16": true,
+ "max_batch": 2
+}

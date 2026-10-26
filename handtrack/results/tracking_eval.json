@@ -1,0 +1,48 @@
+{
+ "still_hand": {
+  "ids": 1,
+  "switches": 0,
+  "flips": 0,
+  "jumps": 0,
+  "same_label_frames": 0,
+  "hand_frames": 449,
+  "jitter_raw_px": 0.44102180071447766,
+  "jitter_filtered_px": 0.16654624478647723
+ },
+ "slow": {
+  "ids": 1,
+  "switches": 0,
+  "flips": 0,
+  "jumps": 0,
+  "same_label_frames": 0,
+  "hand_frames": 449,
+  "filt_raw_dist_px": 4.418823776888221,
+  "lag_ms": 25.166716089582966
+ },
+ "fast": {
+  "ids": 1,
+  "switches": 0,
+  "flips": 0,
+  "jumps": 0,
+  "same_label_frames": 0,
+  "hand_frames": 449,
+  "filt_raw_dist_px": 8.47009965628766,
+  "lag_ms": 0.0
+ },
+ "two_hands_crossing": {
+  "ids": 2,
+  "switches": 1,
+  "flips": 0,
+  "jumps": 0,
+  "same_label_frames": 0,
+  "hand_frames": 816
+ },
+ "enter_leave": {
+  "ids": 2,
+  "switches": 2,
+  "flips": 0,
+  "jumps": 0,
+  "same_label_frames": 0,
+  "hand_frames": 319
+ }
+}

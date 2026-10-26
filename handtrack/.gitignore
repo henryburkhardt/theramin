@@ -1,0 +1,5 @@
+clips/
+results/*.png
+__pycache__/
+*.engine
+models/
