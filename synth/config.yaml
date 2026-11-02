@@ -17,6 +17,7 @@ pitch:
 
 volume:
   span: [0.15, 0.75]      # left wrist height (0 = bottom of frame, 1 = top) from silent to full volume
+  max: 1.0               # overall level at full volume, echoes included (0.5 = -6 dB, 0.25 = -12 dB)
 
 brightness:               # right thumb-index pinch -> filter cutoff
   cutoff_lo: 300          # Hz with the pinch closed
@@ -31,6 +32,17 @@ delay:                    # right hand height -> delay (up = louder echoes that 
 vibrato:                  # left thumb-index pinch: closed = full vibrato
   rate: 5.5               # Hz
   depth: 0.5              # semitones at full vibrato
+
+speakers:                 # one ring of speakers; left hand left <-> right moves the sound around it
+  count: 16               # output channels, in ring order (2 = plain stereo out)
+  device: Digiface        # part of the output's name in jack_lsp; null = the default outputs
+  first: 0                # device channel for speaker 1, counting from 0 (0 = Digiface optical out 1, ch 1)
+  order: null             # channels in the order they go around the room, e.g. [1, 2, 4, 3, ...];
+                          # null = 1..count. Channel 1 is at `first` (1-8 = first Ultragain, 9-16 = second)
+  width: 2.0              # how many neighbouring speakers the sound spreads over (2 = sharpest)
+  echo_width: 3.0         # the same for the delay echoes, which trail behind where the sound was
+  span: [0.1, 0.9]        # part of the frame width (your left to your right) the left wrist moves over
+  turns: 4                # times around the ring across that span (4 = each quarter of it goes once around)
 
 timeout: 0.15             # seconds without a hand before it counts as gone
 debug: false              # print the values sent to the synth, 5 times a second

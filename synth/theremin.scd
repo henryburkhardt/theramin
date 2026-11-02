@@ -15,11 +15,12 @@
 //   right thumb-index pinch                 brightness (open = bright)
 //   right hand height                       delay level and feedback (up = wilder)
 //   left thumb-index pinch                  vibrato (pinch closed = more vibrato)
+//   left hand, left <-> right               where the sound sits in the speaker ring (speakers.turns times around)
 //
 // Settings live in config.yaml next to this file (restart after editing); run.sh config_chord.yaml
 // uses another file, e.g. a major 7th chord that slides between semitone steps. camera_mirrored and the
 // camera size are read from ../handtrack/config.yaml. While it runs you can still override from
-// scide, e.g. ~snap = 1; ~debug = true;
+// scide, e.g. ~snap = 1; ~debug = true; ~synth.set(\maxAmp, 0.3);
 
 (
 // ---- settings: config.yaml here, plus the camera settings from the tracker's config ----
@@ -47,6 +48,7 @@ lo = ~noteLo.asInteger;
 };
 ~step = nil;                // current grid index
 ~volSpan = cfg["volume"]["span"].collect(_.asFloat);
+~volMax = (cfg["volume"]["max"] ? "1").asFloat.clip(0, 1);   // overall level cap, echoes included
 ~cutoffLo = cfg["brightness"]["cutoff_lo"].asFloat;
 ~cutoffHi = cfg["brightness"]["cutoff_hi"].asFloat;
 ~vibRate = cfg["vibrato"]["rate"].asFloat;
@@ -56,16 +58,46 @@ lo = ~noteLo.asInteger;
 ~delaySpan = (~delay["span"] ? ["0.3", "0.8"]).collect(_.asFloat);
 ~delayMixMax = (~delay["mix_max"] ? "0").asFloat;
 ~delayFbMax = (~delay["feedback_max"] ? "0").asFloat.min(0.99);
+~spk = cfg["speakers"] ? ();
+~numSpeakers = (~spk["count"] ? "2").asInteger;
+~spkDevice = ~spk["device"];        // part of the output's JACK name, e.g. Digiface; nil = default outputs
+~spkFirst = (~spk["first"] ? "0").asInteger;
+// Channels (1 = the one at `first`) in the order they go around the ring; ring position i plays on order[i].
+~spkOrder = if(~spk["order"].isKindOf(Array)) { ~spk["order"].collect(_.asInteger) } { (1 .. ~numSpeakers) };  // null = in order
+if(~spkOrder.size != ~numSpeakers) {
+	"speakers: order lists % channels but count is %; using 1..%".format(~spkOrder.size, ~numSpeakers, ~numSpeakers).warn;
+	~spkOrder = (1 .. ~numSpeakers);
+};
+~spkWidth = (~spk["width"] ? "2").asFloat;
+~spkEchoWidth = (~spk["echo_width"] ? "3").asFloat;
+~panSpan = (~spk["span"] ? ["0.1", "0.9"]).collect(_.asFloat);
+~panTurns = (~spk["turns"] ? "1").asFloat;   // times around the ring across the span
 ~timeout = cfg["timeout"].asFloat;
 ~debug = cfg["debug"] == "true";
 
 s.options.blockSize = 64;
 s.options.numInputBusChannels = 0;
+s.options.numOutputBusChannels = ~numSpeakers;
+// Point scsynth's outputs at the speaker device: output i goes to the device's playback port first + i.
+~spkDevice !? { |dev|
+	var ports = "jack_lsp".unixCmdGetStdOut.split($\n).select { |p|
+		p.contains(dev) and: { p.contains(":playback_") }
+	};
+	var client = ports.first !? { |p| p.split($:).first };
+	if(client.isNil) { "speakers: no playback ports matching '%', using the default outputs".format(dev).warn } {
+		// PipeWire calls them playback_AUX0.. for multichannel devices and playback_FL.. for stereo ones
+		var names = ports.select { |p| p.beginsWith(client ++ ":playback_AUX") };
+		var chans = ~spkOrder.collect { |c| ~spkFirst + c - 1 };   // 0-based device channels
+		names = if(names.notEmpty) { chans.collect { |i| client ++ ":playback_AUX" ++ i } } { ports[chans] };
+		"SC_JACK_DEFAULT_OUTPUTS".setenv(names.join($,));
+		"speakers: % channels to %, ring order %".format(~numSpeakers, client, chans + 1).postln;
+	}
+};
 
 s.waitForBoot {
 	SynthDef(\handTheremin, { |out = 0, note = 60, amp = 0, cutoff = 3000, vib = 0, glide = 0.05,
-		vibRate = 5.5, vibDepth = 0.5, delayTime = 0.3, delayMix = 0, delayFb = 0|
-		var n, freq, sig, fb, echo;
+		vibRate = 5.5, vibDepth = 0.5, delayTime = 0.3, delayMix = 0, delayFb = 0, pan = 0, maxAmp = 1|
+		var n, freq, sig, fb, echo, pos;
 		// Tracking arrives at ~30 fps; the lags turn those steps into smooth curves.
 		n = Lag.kr(note, glide) + (SinOsc.kr(vibRate) * Lag.kr(vib, 0.2) * vibDepth);
 		// Every voice follows the same lagged root, so a chord slides as one.
@@ -75,20 +107,24 @@ s.waitForBoot {
 		}.sum / ~voices.size.sqrt;
 		sig = RLPF.ar(sig, Lag.kr(cutoff, 0.05).clip(80, 12000), 0.4);
 		sig = sig * Lag.kr(amp, 0.03).squared * 0.5;
-		// Ping-pong delay: left echoes feed the right and back. The low-pass and tanh in the loop
-		// darken each repeat and keep feedback near 1 from running away.
-		fb = LocalIn.ar(2) * Lag.kr(delayFb, 0.1);
-		echo = DelayC.ar([sig + fb[1], fb[0]], 2, delayTime);
+		// Feedback delay. The low-pass and tanh in the loop darken each repeat and keep feedback
+		// near 1 from running away.
+		fb = LocalIn.ar(1) * Lag.kr(delayFb, 0.1);
+		echo = DelayC.ar(sig + fb, 2, delayTime);
 		echo = LPF.ar(echo, 4000).tanh;
 		LocalOut.ar(echo);
-		sig = (sig ! 2) + (echo * Lag.kr(delayMix, 0.1));
-		sig = Limiter.ar(LeakDC.ar(sig), 0.9);
+		// Ring position: 0..2 is once around, 0 = the first speaker. The echoes sit where the sound
+		// was one delay time ago, spread wider, so they trail behind the hand around the room.
+		pos = Lag.kr(pan, 0.1);
+		sig = PanAz.ar(~numSpeakers, sig, pos, 1, ~spkWidth, 0)
+			+ PanAz.ar(~numSpeakers, echo * Lag.kr(delayMix, 0.1), DelayN.kr(pos, 2, delayTime), 1, ~spkEchoWidth, 0);
+		sig = Limiter.ar(LeakDC.ar(sig), 0.9) * Lag.kr(maxAmp, 0.1);
 		Out.ar(out, sig);
 	}).add;
 	s.sync;
 
 	~synth = Synth(\handTheremin, [\glide, ~glide, \vibRate, ~vibRate, \vibDepth, ~vibDepth,
-		\delayTime, ~delayTime]);
+		\delayTime, ~delayTime, \maxAmp, ~volMax]);
 	~hands = (Left: nil, Right: nil);   // latest 63 landmark values per hand
 	~seen = (Left: 0, Right: 0);        // when each hand was last received
 	~lastPost = 0;
@@ -117,7 +153,10 @@ s.waitForBoot {
 			{ |d| args.addAll([\delayMix, d * ~delayMixMax, \delayFb, d * ~delayFbMax]) }
 				.value((1 - r[1]).linlin(~delaySpan[0], ~delaySpan[1], 0, 1));
 		};
-		if(l.notNil) { args.addAll([\vib, ~pinch.(l).linlin(0.15, 0.6, 1, 0)]) };
+		if(l.notNil) {
+			var u = if(~cameraMirrored) { l[0] } { 1 - l[0] };    // left wrist, toward your right = clockwise
+			args.addAll([\vib, ~pinch.(l).linlin(0.15, 0.6, 1, 0), \pan, u.linlin(~panSpan[0], ~panSpan[1], 0, 2 * ~panTurns)]);
+		};
 		args.addAll([\amp, if(r.notNil and: { l.notNil }) { (1 - l[1]).linlin(~volSpan[0], ~volSpan[1], 0, 1) } { 0 }]);
 		~synth.set(*args);
 		if(~debug and: { now - ~lastPost > 0.2 }) { ~lastPost = now; args.asArray.round(0.01).postln };
