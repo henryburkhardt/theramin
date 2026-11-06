@@ -15,7 +15,8 @@
 //   right thumb-index pinch                 brightness (open = bright)
 //   right hand height                       delay level and feedback (up = wilder)
 //   left thumb-index pinch                  vibrato (pinch closed = more vibrato)
-//   left hand, left <-> right               where the sound sits in the speaker ring (speakers.turns times around)
+//   left hand, left <-> right               where the sound sits in the speaker ring (speakers.turns times around;
+//                                           nothing with speakers.count 1)
 //
 // Settings live in config.yaml next to this file (restart after editing); run.sh config_chord.yaml
 // uses another file, e.g. a major 7th chord that slides between semitone steps. camera_mirrored and the
@@ -68,6 +69,9 @@ if(~spkOrder.size != ~numSpeakers) {
 	"speakers: order lists % channels but count is %; using 1..%".format(~spkOrder.size, ~numSpeakers, ~numSpeakers).warn;
 	~spkOrder = (1 .. ~numSpeakers);
 };
+// count 1 = one speaker: no panning, the same mono signal on both channels of a stereo device (e.g. HDMI)
+~mono = ~numSpeakers == 1;
+~numOuts = if(~mono) { 2 } { ~numSpeakers };
 ~spkWidth = (~spk["width"] ? "2").asFloat;
 ~spkEchoWidth = (~spk["echo_width"] ? "3").asFloat;
 ~panSpan = (~spk["span"] ? ["0.1", "0.9"]).collect(_.asFloat);
@@ -77,7 +81,7 @@ if(~spkOrder.size != ~numSpeakers) {
 
 s.options.blockSize = 64;
 s.options.numInputBusChannels = 0;
-s.options.numOutputBusChannels = ~numSpeakers;
+s.options.numOutputBusChannels = ~numOuts;
 // Point scsynth's outputs at the speaker device: output i goes to the device's playback port first + i.
 ~spkDevice !? { |dev|
 	var ports = "jack_lsp".unixCmdGetStdOut.split($\n).select { |p|
@@ -87,10 +91,11 @@ s.options.numOutputBusChannels = ~numSpeakers;
 	if(client.isNil) { "speakers: no playback ports matching '%', using the default outputs".format(dev).warn } {
 		// PipeWire calls them playback_AUX0.. for multichannel devices and playback_FL.. for stereo ones
 		var names = ports.select { |p| p.beginsWith(client ++ ":playback_AUX") };
-		var chans = ~spkOrder.collect { |c| ~spkFirst + c - 1 };   // 0-based device channels
-		names = if(names.notEmpty) { chans.collect { |i| client ++ ":playback_AUX" ++ i } } { ports[chans] };
+		var chans = if(~mono) { [~spkFirst, ~spkFirst + 1] } { ~spkOrder.collect { |c| ~spkFirst + c - 1 } };   // 0-based device channels
+		names = if(names.notEmpty) { chans.collect { |i| client ++ ":playback_AUX" ++ i } } { ports[chans].reject(_.isNil) };
 		"SC_JACK_DEFAULT_OUTPUTS".setenv(names.join($,));
-		"speakers: % channels to %, ring order %".format(~numSpeakers, client, chans + 1).postln;
+		if(~mono) { "speakers: mono to %".format(names.join(", ")).postln } {
+			"speakers: % channels to %, ring order %".format(~numSpeakers, client, chans + 1).postln };
 	}
 };
 
@@ -116,8 +121,10 @@ s.waitForBoot {
 		// Ring position: 0..2 is once around, 0 = the first speaker. The echoes sit where the sound
 		// was one delay time ago, spread wider, so they trail behind the hand around the room.
 		pos = Lag.kr(pan, 0.1);
-		sig = PanAz.ar(~numSpeakers, sig, pos, 1, ~spkWidth, 0)
-			+ PanAz.ar(~numSpeakers, echo * Lag.kr(delayMix, 0.1), DelayN.kr(pos, 2, delayTime), 1, ~spkEchoWidth, 0);
+		sig = if(~mono) { (sig + (echo * Lag.kr(delayMix, 0.1))) ! 2 } {
+			PanAz.ar(~numSpeakers, sig, pos, 1, ~spkWidth, 0)
+				+ PanAz.ar(~numSpeakers, echo * Lag.kr(delayMix, 0.1), DelayN.kr(pos, 2, delayTime), 1, ~spkEchoWidth, 0)
+		};
 		sig = Limiter.ar(LeakDC.ar(sig), 0.9) * Lag.kr(maxAmp, 0.1);
 		Out.ar(out, sig);
 	}).add;

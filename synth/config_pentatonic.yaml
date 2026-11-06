@@ -1,0 +1,43 @@
+# Single voice that slides between notes of the B major pentatonic scale: ./run.sh config_pentatonic.yaml
+# Same as config_chord.yaml apart from voices, pitch and speakers (mono out of the monitor over HDMI). Same keys as config.yaml (see the comments there);
+# restart run.sh after editing.
+# camera_mirrored and the camera size come from ../handtrack/config.yaml.
+
+port: 9000                # UDP port the tracker sends to (run.py --udp 127.0.0.1:9000)
+
+voices: [0]               # one note at a time, no chord
+
+pitch:
+  note_lo: 47             # lowest note (47 = B2); steps count from here, so this must be a B
+  note_hi: 84             # highest note (83 = B5), three octaves
+  span: [0.15, 0.85]      # part of the frame width (your left to your right) that spans note_lo..note_hi
+  snap: 0.0               # only used without steps
+  glide: 0.9              # seconds the note takes to slide to the next step
+  steps: [0, 2, 4, 7, 9]  # major pentatonic above note_lo: B C# D# F# G#
+  hysteresis: 0.25        # with steps: how far past a step boundary (in steps) the hand must go to change
+
+volume:
+  span: [0.15, 0.75]      # left wrist height (0 = bottom of frame, 1 = top) from silent to full volume
+  max: 1.0               # overall level at full volume, echoes included (0.5 = -6 dB, 0.25 = -12 dB)
+
+brightness:               # right thumb-index pinch -> filter cutoff
+  cutoff_lo: 300          # Hz with the pinch closed
+  cutoff_hi: 8000         # Hz with the pinch open
+
+delay:                    # right hand height -> delay (up = louder echoes that ring longer)
+  time: 0.3               # seconds between echoes (max 2)
+  span: [0.3, 0.8]        # right wrist height (0 = bottom of frame, 1 = top) from no delay to full
+  mix_max: 1            # echo level at full
+  feedback_max: 1       # feedback at full; near 1 the echoes barely fade (capped at 0.99)
+
+vibrato:                  # left thumb-index pinch: closed = full vibrato
+  rate: 5.5               # Hz
+  depth: 0              # semitones at full vibrato
+
+speakers:                 # one speaker, no surround: left hand left <-> right does nothing
+  count: 1                # 1 = mono, played on both channels of the device
+  device: HDMI            # part of the output's name in jack_lsp (the monitor's HDMI audio); null = the default outputs
+  first: 0                # device channel to start at (0 = left)
+
+timeout: 0.15             # seconds without a hand before it counts as gone
+debug: false              # print the values sent to the synth, 5 times a second
